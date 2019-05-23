@@ -142,7 +142,7 @@ void QNode::log( const LogLevel &level, const std::string &msg) {
 
             QStringList col_row = {QString(elem.name.c_str()),QString(elem.name.c_str())};
             std::cout << elem.name << std::endl;
-            QVariant new_row(col_row);
+            QVariant new_row(QString(elem.name.c_str()));
 
             logging_model.insertRows(logging_model.rowCount(),1);
             logging_model.setData(logging_model.index(logging_model.rowCount()-1),new_row);
