@@ -14,6 +14,7 @@
 #include <ros/network.h>
 #include <ros/master.h>
 #include <string>
+#include <QDebug>
 #include <std_msgs/String.h>
 #include <sstream>
 #include "../include/rqt_state/qnode.hpp"
@@ -34,7 +35,8 @@ QNode::QNode(int argc, char** argv ) :
 	init_argv(argv)
 	{}
 
-QNode::~QNode() {
+QNode::~QNode()
+{
     if(ros::isStarted()) {
       ros::shutdown(); // explicitly needed since we use ros::start();
       ros::waitForShutdown();
@@ -42,116 +44,113 @@ QNode::~QNode() {
 	wait();
 }
 
-bool QNode::init() {
+bool QNode::init()
+{
 	ros::init(init_argc,init_argv,"rqt_state");
 	if ( ! ros::master::check() ) {
 		return false;
 	}
 	ros::start(); // explicitly needed since our nodehandle is going out of scope.
 	ros::NodeHandle n;
-	// Add your ros communications here.
-	chatter_publisher = n.advertise<std_msgs::String>("chatter", 1000);
+
 	start();
 	return true;
 }
 
-bool QNode::init(const std::string &master_url, const std::string &host_url) {
-	std::map<std::string,std::string> remappings;
-	remappings["__master"] = master_url;
-	remappings["__hostname"] = host_url;
-	ros::init(remappings,"rqt_state");
-	if ( ! ros::master::check() ) {
-		return false;
-	}
-	ros::start(); // explicitly needed since our nodehandle is going out of scope.
-	ros::NodeHandle n;
-	// Add your ros communications here.
-	chatter_publisher = n.advertise<std_msgs::String>("chatter", 1000);
-	start();
-	return true;
-}
 
-void QNode::run() {
+
+void QNode::run()
+{
 	ros::Rate loop_rate(1);
-	int count = 0;
-        log(Info,std::string("I sent: "));
-        while ( ros::ok() ) {
+        while (ros::ok())
+        {
 
 		std_msgs::String msg;
-		std::stringstream ss;
-		ss << "hello world " << count;
-		msg.data = ss.str();
-		chatter_publisher.publish(msg);
-
+                updateTopicTable();
 		ros::spinOnce();
 		loop_rate.sleep();
-		++count;
 	}
 	std::cout << "Ros shutdown, proceeding to close the gui." << std::endl;
 	Q_EMIT rosShutdown(); // used to signal the gui for a shutdown (useful to roslaunch)
 }
 
+/** @brief generic function to record time for last msg received on topic
+ **/
+void QNode::topicCallback(const topic_tools::ShapeShifter::ConstPtr &msg, uint64_t &msg_time)
+{
+    ros::Time time = ros::Time::now();
+    msg_time = 1000 * static_cast<uint64_t>(time.sec) + static_cast<uint64_t>(time.sec);
+}
 
-void QNode::log( const LogLevel &level, const std::string &msg) {
-//	logging_model.insertRows(logging_model.rowCount(),1);
-//	std::stringstream logging_model_msg;
-//	switch ( level ) {
-//		case(Debug) : {
-//				ROS_DEBUG_STREAM(msg);
-//				logging_model_msg << "[DEBUG] [" << ros::Time::now() << "]: " << msg;
-//				break;
-//		}
-//		case(Info) : {
-//				ROS_INFO_STREAM(msg);
-//				logging_model_msg << "[INFO] [" << ros::Time::now() << "]: " << msg;
-//				break;
-//		}
-//		case(Warn) : {
-//				ROS_WARN_STREAM(msg);
-//				logging_model_msg << "[INFO] [" << ros::Time::now() << "]: " << msg;
-//				break;
-//		}
-//		case(Error) : {
-//				ROS_ERROR_STREAM(msg);
-//				logging_model_msg << "[ERROR] [" << ros::Time::now() << "]: " << msg;
-//				break;
-//		}
-//		case(Fatal) : {
-//				ROS_FATAL_STREAM(msg);
-//				logging_model_msg << "[FATAL] [" << ros::Time::now() << "]: " << msg;
-//				break;
-//		}
-//	}
-//	QVariant new_row(QString(logging_model_msg.str().c_str()));
-//	logging_model.setData(logging_model.index(logging_model.rowCount()-1),new_row);
+/** @brief Retrieve all current topics
+ *  @returns QSet<QString> names for all topics
+*/
+QSet<QString> QNode::getTopics()
+{
+    QSet<QString> topics;
+
+    ros::master::V_TopicInfo topic_infos;
+    ros::master::getTopics(topic_infos);
+
+    for(auto it = topic_infos.begin(); it != topic_infos.end(); it++)
+        topics.insert(it->name.c_str());
 
 
+    return topics;
+}
 
-        // Get the topic name and msg type pair
-        QVector<QPair<QString, QString>> topics;
-        ros::master::V_TopicInfo topic_infos;
-        ros::master::getTopics(topic_infos);
+/** @brief Retrieve all current nodes
+ *  @returns QSet<QString> names for nodes
+ **/
+QSet<QString> QNode::getNodes()
+{
+    QSet<QString> nodes;
+    ros::V_string node_info;
+    ros::master::getNodes(node_info);
+
+    for(auto node: node_info)
+        nodes.insert(node.c_str());
+
+    return nodes;
+}
+
+/** @brief update topic list, based on retrieved info
+ *  @returns QSet<QString> of new-untracked topics
+ **/
+QSet<QString> QNode::updateTopics()
+{
+    QSet<QString> current_topics(getTopics());
+
+    current_topics.subtract(m_topic_list);
+
+    return current_topics;
+}
 
 
-        char lc_delim[2];
-        lc_delim[0] = '/';
-        lc_delim[1] = '\0';
+/** @brief add new_topics to viewtable
+ **/
+void QNode::updateTopicTable()
+{
+    QSet<QString> new_topics(updateTopics());
 
-        for(auto elem: topic_infos){
-            topics.append(QPair<QString,QString>(QString::fromStdString(elem.name),QString::fromStdString(elem.datatype)));
+    // if there are new topics add them to tableview
+    if(!new_topics.empty())
+    {
+        for(auto topic_str: new_topics.values())
+        {
+            QVariant new_row(topic_str);
 
-            QStringList col_row = {QString(elem.name.c_str()),QString(elem.name.c_str())};
-            std::cout << elem.name << std::endl;
-            QVariant new_row(QString(elem.name.c_str()));
+            m_topic_list.insert(topic_str);
 
             logging_model.insertRows(logging_model.rowCount(),1);
-            logging_model.setData(logging_model.index(logging_model.rowCount()-1),new_row);
-            std::cout << logging_model.rowCount() << std::endl;
+            logging_model.setData(logging_model.index(logging_model.rowCount()-1), new_row);
 
+
+            qDebug() << "New_topic: " << topic_str;
         }
+    }
 
-
-        Q_EMIT loggingUpdated(); // used to readjust the scrollbar
+    Q_EMIT loggingUpdated(); // used to readjust the scrollbar
 }
 
 }  // namespace rqt_state

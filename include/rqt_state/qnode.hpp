@@ -20,10 +20,13 @@
 //    https://bugreports.qt.io/browse/QTBUG-22829
 #ifndef Q_MOC_RUN
 #include <ros/ros.h>
+#include <topic_tools/shape_shifter.h>
 #endif
 #include <string>
 #include <QThread>
 #include <QStringListModel>
+
+
 
 
 /*****************************************************************************
@@ -42,32 +45,36 @@ public:
 	QNode(int argc, char** argv );
 	virtual ~QNode();
 	bool init();
-	bool init(const std::string &master_url, const std::string &host_url);
 	void run();
 
-	/*********************
-	** Logging
-	**********************/
-	enum LogLevel {
-	         Debug,
-	         Info,
-	         Warn,
-	         Error,
-	         Fatal
-	 };
 
 	QStringListModel* loggingModel() { return &logging_model; }
-	void log( const LogLevel &level, const std::string &msg);
+        void updateTopicTable();
 
 Q_SIGNALS:
 	void loggingUpdated();
-    void rosShutdown();
+        void rosShutdown();
+
+// private methods
+private:
+        QSet<QString> getTopics();
+        QSet<QString> getNodes();
+
+        QSet<QString> updateTopics();
+
+        void topicCallback(const topic_tools::ShapeShifter::ConstPtr &msg,
+                           uint64_t &msg_time);
 
 private:
+
 	int init_argc;
 	char** init_argv;
-	ros::Publisher chatter_publisher;
-    QStringListModel logging_model;
+
+        QStringListModel logging_model;
+        QSet<QString> m_topic_list;
+        QSet<QString> m_node_list;
+
+        std::vector<ros::Subscriber> m_topic_subs;
 };
 
 }  // namespace rqt_state
