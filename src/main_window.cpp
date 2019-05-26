@@ -34,19 +34,22 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     QObject::connect(ui.actionAbout_Qt, SIGNAL(triggered(bool)), qApp, SLOT(aboutQt())); // qApp is a global variable for the application
 
 
-    ui.tab_manager->setCurrentIndex(0); // ensure the first tab is showing - qt-designer should have this already hardwired, but often loses it (settings?).
-
     // For closing
     QObject::connect(&qnode, SIGNAL(rosShutdown()), this, SLOT(close()));
 
-
+    qRegisterMetaType<QPair<QString,QString>>("QPair<QString,QString>");
     // Logging
-    ui.topic_table->setModel(qnode.loggingModel());
-    QObject::connect(&qnode, SIGNAL(loggingUpdated()), this, SLOT());
+    topic_name_widget["topic_widget"] = ui.topic_viewer;
+    qnode.add_topic_widget(ui.topic_viewer->objectName());
+    QObject::connect(&qnode, SIGNAL(loggingUpdated(QPair<QString,QString>)), this, SLOT(updateTopicBox(QPair<QString, QString>)));
     qnode.init();
 
 }
 
+void MainWindow::updateTopicBox(QPair<QString, QString> topic_msg)
+{
+    topic_name_widget[topic_msg.first]->setText(topic_msg.second);
+}
 MainWindow::~MainWindow() {}
 
 

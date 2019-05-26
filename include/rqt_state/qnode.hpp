@@ -25,7 +25,7 @@
 #include <string>
 #include <QThread>
 #include <QStringListModel>
-
+#include <QTextBrowser>
 
 
 
@@ -50,9 +50,10 @@ public:
 
 	QStringListModel* loggingModel() { return &logging_model; }
         void updateTopicTable();
+        void add_topic_widget(const QString &topic_widget);
 
 Q_SIGNALS:
-	void loggingUpdated();
+        void loggingUpdated(QPair<QString, QString> msg);
         void rosShutdown();
 
 // private methods
@@ -73,8 +74,9 @@ private:
         QStringListModel logging_model;
         QSet<QString> m_topic_list;
         QSet<QString> m_node_list;
-
+        QSet<QString> m_topic_widgets;
         std::vector<ros::Subscriber> m_topic_subs;
+        QTextBrowser *last;
 };
 
 }  // namespace rqt_state

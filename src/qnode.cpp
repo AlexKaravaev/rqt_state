@@ -74,6 +74,16 @@ void QNode::run()
 	Q_EMIT rosShutdown(); // used to signal the gui for a shutdown (useful to roslaunch)
 }
 
+/** @brief Add topic_widget_box for monitoring
+ **/
+void QNode::add_topic_widget(const QString &topic_widget)
+{
+    m_topic_widgets.insert(topic_widget);
+    //last = topic_widget;
+    //last->setText("lol");
+
+}
+
 /** @brief generic function to record time for last msg received on topic
  **/
 void QNode::topicCallback(const topic_tools::ShapeShifter::ConstPtr &msg, uint64_t &msg_time)
@@ -132,7 +142,8 @@ QSet<QString> QNode::updateTopics()
 void QNode::updateTopicTable()
 {
     QSet<QString> new_topics(updateTopics());
-
+    QPair<QString, QString> topic_msg;
+    //last->setText("lol");
     // if there are new topics add them to tableview
     if(!new_topics.empty())
     {
@@ -141,16 +152,19 @@ void QNode::updateTopicTable()
             QVariant new_row(topic_str);
 
             m_topic_list.insert(topic_str);
+            //auto last = m_topic_widgets.end();
 
-            logging_model.insertRows(logging_model.rowCount(),1);
-            logging_model.setData(logging_model.index(logging_model.rowCount()-1), new_row);
+            //last->setText("topic_str");
 
 
             qDebug() << "New_topic: " << topic_str;
+            topic_msg.first = "topic_widget";
+            topic_msg.second = "really";
+            Q_EMIT loggingUpdated(topic_msg);
         }
     }
 
-    Q_EMIT loggingUpdated(); // used to readjust the scrollbar
+     // used to readjust the scrollbar
 }
 
 }  // namespace rqt_state

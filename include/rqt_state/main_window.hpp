@@ -31,11 +31,13 @@ public:
 	void closeEvent(QCloseEvent *event); // Overloaded function
 
 public Q_SLOTS:
-
+        void updateTopicBox(QPair<QString, QString> msg);
 
 private:
 	Ui::MainWindowDesign ui;
+        QMap<QString, QTextBrowser*> topic_name_widget;
 	QNode qnode;
+
 };
 
 }  // namespace rqt_state
