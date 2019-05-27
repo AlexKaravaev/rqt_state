@@ -11,7 +11,7 @@
 #include <QtGui/QMainWindow>
 #include "ui_main_window.h"
 #include "qnode.hpp"
-
+#include "enum_msg_type.h"
 
 namespace rqt_state {
 
@@ -31,12 +31,12 @@ public:
 	void closeEvent(QCloseEvent *event); // Overloaded function
 
 public Q_SLOTS:
-        void updateTopicBox(QPair<QString, QString> msg);
+        void updateTopicBox(QPair<QString, QString> topic_msg);
 
 private:
 	Ui::MainWindowDesign ui;
-        QMap<QString, QTextBrowser*> topic_name_widget;
-	QNode qnode;
+        QMap<QString, QTextBrowser*> m_qt_name_to_topic_name;
+        QNode m_qnode;
 
 };
 

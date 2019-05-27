@@ -1,82 +1,43 @@
-/**
- * @file /include/rqt_state/qnode.hpp
- *
- * @brief Communications central!
- *
- * @date February 2011
- **/
-/*****************************************************************************
-** Ifdefs
-*****************************************************************************/
-
 #ifndef rqt_state_QNODE_HPP_
 #define rqt_state_QNODE_HPP_
-
-/*****************************************************************************
-** Includes
-*****************************************************************************/
-
-// To workaround boost/qt4 problems that won't be bugfixed. Refer to
-//    https://bugreports.qt.io/browse/QTBUG-22829
 #ifndef Q_MOC_RUN
 #include <ros/ros.h>
 #include <topic_tools/shape_shifter.h>
+#include <std_msgs/Int64.h>
+#include "enum_msg_type.h"
 #endif
 #include <string>
 #include <QThread>
 #include <QStringListModel>
 #include <QTextBrowser>
 
-
-
-/*****************************************************************************
-** Namespaces
-*****************************************************************************/
-
 namespace rqt_state {
-
-/*****************************************************************************
-** Class
-*****************************************************************************/
 
 class QNode : public QThread {
     Q_OBJECT
 public:
-	QNode(int argc, char** argv );
-	virtual ~QNode();
-	bool init();
-	void run();
-
-
-	QStringListModel* loggingModel() { return &logging_model; }
-        void updateTopicTable();
-        void add_topic_widget(const QString &topic_widget);
+    QNode(int argc, char** argv );
+    virtual ~QNode();
+    bool init();
+    void run();
+    void addTopicWidget(const QString &object_name, const QString &topic_name, msg_type msg_type);
 
 Q_SIGNALS:
-        void loggingUpdated(QPair<QString, QString> msg);
-        void rosShutdown();
-
-// private methods
-private:
-        QSet<QString> getTopics();
-        QSet<QString> getNodes();
-
-        QSet<QString> updateTopics();
-
-        void topicCallback(const topic_tools::ShapeShifter::ConstPtr &msg,
-                           uint64_t &msg_time);
+    void loggingUpdated(QPair<QString, QString> msg);
+    void rosShutdown();
 
 private:
+    void int64TopicCallback(const std_msgs::Int64::ConstPtr& msg,
+                            const QString &object_name);
 
-	int init_argc;
-	char** init_argv;
+private:
+    int init_argc;
+    char** init_argv;
 
-        QStringListModel logging_model;
-        QSet<QString> m_topic_list;
-        QSet<QString> m_node_list;
-        QSet<QString> m_topic_widgets;
-        std::vector<ros::Subscriber> m_topic_subs;
-        QTextBrowser *last;
+    boost::shared_ptr<ros::NodeHandle> m_nh;
+
+    QSet<QString> m_topic_widgets;
+    std::vector<ros::Subscriber> m_topic_subs;
 };
 
 }  // namespace rqt_state

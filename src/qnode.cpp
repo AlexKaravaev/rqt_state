@@ -1,34 +1,14 @@
-/**
- * @file /src/qnode.cpp
- *
- * @brief Ros communication central!
- *
- * @date February 2011
- **/
-
-/*****************************************************************************
-** Includes
-*****************************************************************************/
-
 #include <ros/ros.h>
 #include <ros/network.h>
 #include <ros/master.h>
+#include <std_msgs/Int64.h>
 #include <string>
 #include <QDebug>
 #include <std_msgs/String.h>
 #include <sstream>
 #include "../include/rqt_state/qnode.hpp"
 
-/*****************************************************************************
-** Namespaces
-*****************************************************************************/
-
-
 namespace rqt_state {
-
-/*****************************************************************************
-** Implementation
-*****************************************************************************/
 
 QNode::QNode(int argc, char** argv ) :
 	init_argc(argc),
@@ -50,8 +30,8 @@ bool QNode::init()
 	if ( ! ros::master::check() ) {
 		return false;
 	}
-	ros::start(); // explicitly needed since our nodehandle is going out of scope.
-	ros::NodeHandle n;
+        this->m_nh.reset(new ros::NodeHandle());
+        ros::start();
 
 	start();
 	return true;
@@ -64,9 +44,6 @@ void QNode::run()
 	ros::Rate loop_rate(1);
         while (ros::ok())
         {
-
-		std_msgs::String msg;
-                updateTopicTable();
 		ros::spinOnce();
 		loop_rate.sleep();
 	}
@@ -75,96 +52,29 @@ void QNode::run()
 }
 
 /** @brief Add topic_widget_box for monitoring
+ *  @param QT Object name
+ *  @param topic name for subscribing
+ *  @param ENUM msg type for callback
  **/
-void QNode::add_topic_widget(const QString &topic_widget)
+void QNode::addTopicWidget(const QString &object_name, const QString &topic_name, msg_type msg_type)
 {
-    m_topic_widgets.insert(topic_widget);
-    //last = topic_widget;
-    //last->setText("lol");
-
-}
-
-/** @brief generic function to record time for last msg received on topic
- **/
-void QNode::topicCallback(const topic_tools::ShapeShifter::ConstPtr &msg, uint64_t &msg_time)
-{
-    ros::Time time = ros::Time::now();
-    msg_time = 1000 * static_cast<uint64_t>(time.sec) + static_cast<uint64_t>(time.sec);
-}
-
-/** @brief Retrieve all current topics
- *  @returns QSet<QString> names for all topics
-*/
-QSet<QString> QNode::getTopics()
-{
-    QSet<QString> topics;
-
-    ros::master::V_TopicInfo topic_infos;
-    ros::master::getTopics(topic_infos);
-
-    for(auto it = topic_infos.begin(); it != topic_infos.end(); it++)
-        topics.insert(it->name.c_str());
-
-
-    return topics;
-}
-
-/** @brief Retrieve all current nodes
- *  @returns QSet<QString> names for nodes
- **/
-QSet<QString> QNode::getNodes()
-{
-    QSet<QString> nodes;
-    ros::V_string node_info;
-    ros::master::getNodes(node_info);
-
-    for(auto node: node_info)
-        nodes.insert(node.c_str());
-
-    return nodes;
-}
-
-/** @brief update topic list, based on retrieved info
- *  @returns QSet<QString> of new-untracked topics
- **/
-QSet<QString> QNode::updateTopics()
-{
-    QSet<QString> current_topics(getTopics());
-
-    current_topics.subtract(m_topic_list);
-
-    return current_topics;
-}
-
-
-/** @brief add new_topics to viewtable
- **/
-void QNode::updateTopicTable()
-{
-    QSet<QString> new_topics(updateTopics());
-    QPair<QString, QString> topic_msg;
-    //last->setText("lol");
-    // if there are new topics add them to tableview
-    if(!new_topics.empty())
+    if(msg_type == INT_64)
     {
-        for(auto topic_str: new_topics.values())
-        {
-            QVariant new_row(topic_str);
-
-            m_topic_list.insert(topic_str);
-            //auto last = m_topic_widgets.end();
-
-            //last->setText("topic_str");
-
-
-            qDebug() << "New_topic: " << topic_str;
-            topic_msg.first = "topic_widget";
-            topic_msg.second = "really";
-            Q_EMIT loggingUpdated(topic_msg);
-        }
+        ros::Subscriber sub = m_nh->subscribe<std_msgs::Int64>(topic_name.toStdString(), 10, boost::bind(&QNode::int64TopicCallback, this, _1, object_name));
+        m_topic_subs.push_back(sub);
     }
+}
 
-     // used to readjust the scrollbar
+/** @brief topic callback for Int64 message
+ **/
+void QNode::int64TopicCallback(const std_msgs::Int64::ConstPtr& msg,
+                               const QString &object_name)
+{
+    QPair<QString, QString> topic_msg;
+    qDebug() << "Callback: " << msg->data;
+    topic_msg.first = object_name;
+    topic_msg.second = QString::number(msg->data);
+    Q_EMIT loggingUpdated(topic_msg);
 }
 
 }  // namespace rqt_state

@@ -1,27 +1,9 @@
-/**
- * @file /src/main.cpp
- *
- * @brief Qt based gui.
- *
- * @date November 2010
- **/
-/*****************************************************************************
-** Includes
-*****************************************************************************/
-
 #include <QtGui>
 #include <QApplication>
 #include "../include/rqt_state/main_window.hpp"
 
-/*****************************************************************************
-** Main
-*****************************************************************************/
-
 int main(int argc, char **argv) {
 
-    /*********************
-    ** Qt
-    **********************/
     QApplication app(argc, argv);
     rqt_state::MainWindow w(argc,argv);
     w.show();

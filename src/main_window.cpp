@@ -1,58 +1,50 @@
-/**
- * @file /src/main_window.cpp
- *
- * @brief Implementation for the qt gui.
- *
- * @date February 2011
- **/
-/*****************************************************************************
-** Includes
-*****************************************************************************/
-
 #include <QtGui>
 #include <QMessageBox>
 #include <iostream>
 #include "../include/rqt_state/main_window.hpp"
 
-/*****************************************************************************
-** Namespaces
-*****************************************************************************/
-
 namespace rqt_state {
 
 using namespace Qt;
 
-/*****************************************************************************
-** Implementation [MainWindow]
-*****************************************************************************/
-
 MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
 	: QMainWindow(parent)
-	, qnode(argc,argv)
+        , m_qnode(argc,argv)
 {
-	ui.setupUi(this); // Calling this incidentally connects all ui's triggers to on_...() callbacks in this class.
+    ui.setupUi(this); // Calling this incidentally connects all ui's triggers to on_...() callbacks in this class.
     QObject::connect(ui.actionAbout_Qt, SIGNAL(triggered(bool)), qApp, SLOT(aboutQt())); // qApp is a global variable for the application
 
 
     // For closing
-    QObject::connect(&qnode, SIGNAL(rosShutdown()), this, SLOT(close()));
+    QObject::connect(&m_qnode, SIGNAL(rosShutdown()), this, SLOT(close()));
 
     qRegisterMetaType<QPair<QString,QString>>("QPair<QString,QString>");
-    // Logging
-    topic_name_widget["topic_widget"] = ui.topic_viewer;
-    qnode.add_topic_widget(ui.topic_viewer->objectName());
-    QObject::connect(&qnode, SIGNAL(loggingUpdated(QPair<QString,QString>)), this, SLOT(updateTopicBox(QPair<QString, QString>)));
-    qnode.init();
+
+    // Init ROS node
+    m_qnode.init();
+
+    // Add QtTextBox object to map with key==object text name
+    m_qt_name_to_topic_name["topic_viewer"] = ui.topic_viewer;
+
+    // Add widget to ros node with QtObject name, topic name for subscribing and msg type
+    m_qnode.addTopicWidget(ui.topic_viewer->objectName(), ui.topic_viewer->property("topic_name").toString(),INT_64);
+
+    // Connect to ROS signal
+    QObject::connect(&m_qnode, SIGNAL(loggingUpdated(QPair<QString,QString>)), this, SLOT(updateTopicBox(QPair<QString, QString>)));
+
 
 }
 
 void MainWindow::updateTopicBox(QPair<QString, QString> topic_msg)
 {
-    topic_name_widget[topic_msg.first]->setText(topic_msg.second);
+    qDebug() << "Callback: " << topic_msg.first;
+    if (m_qt_name_to_topic_name.contains(topic_msg.first))
+        m_qt_name_to_topic_name[topic_msg.first]->setText(topic_msg.second);
+    else
+        ROS_ERROR("Dictionary does not contain object with given name: %s", topic_msg.first.toStdString().c_str());
 }
+
 MainWindow::~MainWindow() {}
-
-
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {

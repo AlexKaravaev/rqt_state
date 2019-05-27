@@ -39,6 +39,9 @@
          <height>51</height>
         </rect>
        </property>
+       <property name="topic_name" stdset="0">
+        <string>topic_out</string>
+       </property>
       </widget>
      </widget>
     </item>
