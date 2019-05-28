@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 #include <topic_tools/shape_shifter.h>
 #include <std_msgs/Int64.h>
+#include <rosgraph_msgs/TopicStatistics.h>
 #include "enum_msg_type.h"
 #endif
 #include <string>
@@ -11,12 +12,14 @@
 #include <QStringListModel>
 #include <QTextBrowser>
 
-namespace rqt_state {
+namespace rqt_state
+{
 
-class QNode : public QThread {
+class QNode : public QThread
+{
     Q_OBJECT
 public:
-    QNode(int argc, char** argv );
+    QNode(int argc, char **argv);
     virtual ~QNode();
     bool init();
     void run();
@@ -27,12 +30,16 @@ Q_SIGNALS:
     void rosShutdown();
 
 private:
-    void int64TopicCallback(const std_msgs::Int64::ConstPtr& msg,
+    void int64TopicCallback(const std_msgs::Int64::ConstPtr &msg,
                             const QString &object_name);
+    void statisticsCallback(const rosgraph_msgs::TopicStatistics::ConstPtr &msg,
+                            const QString &object_name,
+                            const QString &topic_name,
+                            const msg_type &msg_type);
 
 private:
     int init_argc;
-    char** init_argv;
+    char **init_argv;
 
     boost::shared_ptr<ros::NodeHandle> m_nh;
 
@@ -40,6 +47,6 @@ private:
     std::vector<ros::Subscriber> m_topic_subs;
 };
 
-}  // namespace rqt_state
+} // namespace rqt_state
 
 #endif /* rqt_state_QNODE_HPP_ */
