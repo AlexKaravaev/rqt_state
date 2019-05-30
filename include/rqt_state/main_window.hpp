@@ -5,13 +5,10 @@
 #include "ui_main_window.h"
 #include "qnode.hpp"
 #include "enum_msg_type.h"
+#include <QTimer>
 
 namespace rqt_state
 {
-
-/*****************************************************************************
-** Interface [MainWindow]
-*****************************************************************************/
 /**
  * @brief Qt central, all operations relating to the view part here.
  */
@@ -23,15 +20,17 @@ public:
 	MainWindow(int argc, char **argv, QWidget *parent = 0);
 	~MainWindow();
 
-	void closeEvent(QCloseEvent *event); // Overloaded function
+	void closeEvent(QCloseEvent *event);
 
 public Q_SLOTS:
 	void updateTopicBox(QPair<QString, QString> topic_msg);
+	void resetTopicBoxes();
 
 private:
 	Ui::MainWindowDesign ui;
-	QMap<QString, QTextBrowser *> m_qt_name_to_topic_name;
+	QMap<QString, QTextBrowser *> m_qt_name_to_object;
 	QNode m_qnode;
+	QTimer *tmr;
 };
 
 } // namespace rqt_state

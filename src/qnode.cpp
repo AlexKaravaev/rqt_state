@@ -26,11 +26,14 @@ QNode::~QNode()
     wait();
 }
 
+/** @brief set up ros params
+ **/
 bool QNode::init()
 {
     ros::init(init_argc, init_argv, "rqt_state");
     if (!ros::master::check())
     {
+        ROS_ERROR("Could not find rosmaster");
         return false;
     }
     this->m_nh.reset(new ros::NodeHandle());
@@ -40,6 +43,8 @@ bool QNode::init()
     return true;
 }
 
+/** @brief run ros loop
+ **/
 void QNode::run()
 {
     ros::Rate loop_rate(1);
@@ -65,9 +70,7 @@ void QNode::addTopicWidget(const QString &object_name, const QString &topic_name
         m_topic_subs.push_back(sub);
     }
 
-    if (msg_type == STATS_DROPPED_MSGS ||
-        msg_type == STATS_HZ ||
-        msg_type == STATS_BANDWIDTH)
+    if (msg_type == STATS_DROPPED_MSGS || msg_type == STATS_HZ || msg_type == STATS_BANDWIDTH)
     {
         ros::Subscriber sub = m_nh->subscribe<rosgraph_msgs::TopicStatistics>(std::string("/statistics"), 10, boost::bind(&QNode::statisticsCallback, this, _1, object_name, topic_name, msg_type));
         m_topic_subs.push_back(sub);
@@ -80,7 +83,6 @@ void QNode::int64TopicCallback(const std_msgs::Int64::ConstPtr &msg,
                                const QString &object_name)
 {
     QPair<QString, QString> topic_msg;
-    qDebug() << "Callback: " << msg->data;
     topic_msg.first = object_name;
     topic_msg.second = QString::number(msg->data);
     Q_EMIT loggingUpdated(topic_msg);
@@ -100,24 +102,35 @@ void QNode::statisticsCallback(const rosgraph_msgs::TopicStatistics::ConstPtr &m
         QPair<QString, QString> qt_msg;
         qt_msg.first = object_name;
         if (msg_type == STATS_DROPPED_MSGS)
+        {
             qt_msg.second = QString::number(msg->dropped_msgs);
+        }
         if (msg_type == STATS_HZ)
         {
-
             ros::Time start = msg->window_start;
             ros::Time stop = msg->window_stop;
 
             qt_msg.second = QString::number(msg->delivered_msgs / (stop - start).toSec());
-            qDebug() << "HZ: " << QString::number(msg->delivered_msgs / (stop - start).toSec());
+            qt_msg.second.append(QString(" Hz"));
         }
         if (msg_type == STATS_BANDWIDTH)
         {
-
             ros::Time start = msg->window_start;
             ros::Time stop = msg->window_stop;
 
-            qt_msg.second = QString::number(msg->traffic / (stop - start).toSec());
-            qDebug() << "BD: " << QString::number(msg->traffic / (stop - start).toSec());
+            // Convert to human-readable
+            auto bw = msg->traffic / (stop - start).toSec();
+            uint8_t digits;
+            QList<QString> suffixes = {" B/s", " KB/s", " MB/s", " GB/s"};
+
+            while (bw >= 1024 && digits < 4)
+            {
+                bw /= 1024;
+                ++digits;
+            }
+
+            qt_msg.second = QString::number(bw, 'g', 3);
+            qt_msg.second.append(QString(suffixes[digits]));
         }
         Q_EMIT loggingUpdated(qt_msg);
     }

@@ -4,7 +4,6 @@
 
 int main(int argc, char **argv)
 {
-
     QApplication app(argc, argv);
     rqt_state::MainWindow w(argc, argv);
     w.show();
